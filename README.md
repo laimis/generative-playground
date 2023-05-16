@@ -10,7 +10,7 @@ Pre-requesite: have donet framework installed: https://dotnet.microsoft.com/en-u
 
 Steps:
 
-1. Get MakerSuite key
+1. Get MakerSuite key: https://makersuite.google.com/app/home
 2. Run `dotnet user-secrets init`
 3. Run `dotnet user-secrets set bardkey "<KEYVALUE>"
 4. Run `dotnet run`
