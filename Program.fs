@@ -11,73 +11,9 @@ open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
 
-// ---------------------------------
-// Models
-// ---------------------------------
 
-type Question =
-    {
-        Text : string
-    }
-
-// ---------------------------------
-// Views
-// ---------------------------------
-
-module Views =
-    open Giraffe.ViewEngine
-
-    let layout (content: XmlNode list) =
-        html [] [
-            head [] [
-                title []  [ encodedText "generative_playground" ]
-                link [ _rel  "stylesheet"
-                       _type "text/css"
-                       _href "/main.css" ]
-            ]
-            body [] content
-        ]
-
-    let form (text:string) =
-        [
-            h1 [] [ encodedText "Ask your question below:" ]
-            form [ 
-                _action "/"
-                _method "POST"
-                ] [
-                div [] [
-                textarea [
-                    _id "question"
-                    _name "question"
-                    _rows "10";
-                    _cols "80"]
-                    [
-                        rawText text
-                    ]
-                ]
-                button [ _type "submit" ] [ encodedText "Ask" ]
-            ]
-        ]
-
-    let responseView (response:BardClient.Candidates) =
-        let safetyRatingToHtml (safetyRating:BardClient.SafetyRating) =
-            div [] [
-                p [] [ encodedText safetyRating.category ]
-                p [] [ encodedText safetyRating.probability ]
-            ]
-
-        let candidateToHtml (candidate:BardClient.Candidate) =
-
-            let safetyRatingDivs = candidate.safetyRatings |> List.map safetyRatingToHtml
-            let outputDiv = Markdig.Markdown.ToHtml(candidate.output) |> rawText 
-
-            div [] (List.concat [[outputDiv]; safetyRatingDivs])
-        
-        [
-            h1 [] [ encodedText "Answer:" ]
-            div [] (response.candidates |> List.map candidateToHtml)
-        ]
-
+module Handlers =
+    
     let handler : HttpHandler =
         fun (next : HttpFunc) (ctx : Microsoft.AspNetCore.Http.HttpContext) ->
             task {
@@ -88,15 +24,11 @@ module Views =
                     match question with
                     | Some text -> text
                     | None      -> ""
-                    
-                let formElements = questionText |> form
 
                 let! response = BardClient.askQuestion questionText
-
-                let responseElements = response.Result |> responseView
-
-                let elements = List.concat [formElements; responseElements]        
-                return! (elements |> layout |> htmlView) next ctx
+                    
+                let view = Views.render questionText (response.Result)
+                return! (view |> htmlView) next ctx
             }
             
 
@@ -108,12 +40,12 @@ let webApp =
     choose [
         GET >=>
             choose [
-                route "/" >=> Views.handler
+                route "/" >=> Handlers.handler
             ]
 
         POST >=>
             choose [
-                route "/" >=> Views.handler
+                route "/" >=> Handlers.handler
             ]
         setStatusCode 404 >=> text "Not Found" ]
 
@@ -150,12 +82,14 @@ let configureApp (app : IApplicationBuilder) =
         .UseStaticFiles()
         .UseGiraffe(webApp)
 
+type Placeholder = {something:int}
 let configureServices (services : IServiceCollection) =
     services.AddCors()    |> ignore
     services.AddGiraffe() |> ignore
     
     let builder = new ConfigurationBuilder()
-    builder.AddUserSecrets<Question>() |> ignore // had to create this type to get it to work
+    
+    builder.AddUserSecrets<Placeholder>() |> ignore // had to create this type to get it to work
     let config = builder.Build()
     let bardKey = config["bardkey"]
     // read from user's secrets bardkey

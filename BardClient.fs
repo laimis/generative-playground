@@ -19,7 +19,7 @@ module BardClient =
             {
                 prompt = { text = question }
                 temperature = 0.8
-                candidate_count = 1
+                candidate_count = 5
             }
 
     type SafetyRating =
