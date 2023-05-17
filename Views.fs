@@ -6,32 +6,53 @@ module Views =
     let layout (content: XmlNode list) =
         html [] [
             head [] [
-                title []  [ encodedText "generative_playground" ]
-                link [ _rel  "stylesheet"
-                       _type "text/css"
-                       _href "/main.css" ]
+                title []  [ encodedText "LLMs" ]
+                
+                meta [
+                    _name "viewport"
+                    _content "width=device-width, initial-scale=1"
+                ]
+                
+                link [
+                    _rel "stylesheet"
+                    _type "text/css"
+                    _href "/node_modules/bulma/css/bulma.min.css"]
             ]
-            body [] content
+            body [] [
+                div [ _class "container"] content
+            ]
         ]
 
-    let form (text:string) =
-        [
-            h1 [] [ encodedText "Ask your question below:" ]
+    let questionView (text:string) =
+        let formElement =
             form [ 
                 _action "/"
                 _method "POST"
                 ] [
                 div [] [
-                textarea [
-                    _id "question"
-                    _name "question"
-                    _rows "10";
-                    _cols "80"]
-                    [
-                        rawText text
+                    div [_class "field"] [
+                        label [_for "question"] [ encodedText "Question" ]
+                        textarea [
+                            _id "question"
+                            _name "question"
+                            _class "textarea"
+                            ] [
+                                rawText text
+                            ]
+                    ]
+                    div [_class "field"] [
+                        button [
+                            _class "button is-primary"
+                            _type "submit"
+                        ] [ encodedText "Ask" ]
                     ]
                 ]
-                button [ _type "submit" ] [ encodedText "Ask" ]
+            ]
+        
+        [
+            div [_class "content"] [
+                h1 [] [ encodedText "Ask a Question" ]
+                formElement
             ]
         ]
 
@@ -46,38 +67,49 @@ module Views =
                 ]
                 Some elem
 
+        let citationToHtml (citation:BardClient.CitationSource) =
+            li [] [
+                a [ _href citation.uri ] [
+                    encodedText citation.uri
+                ]
+            ]
+
         let candidateToHtml (candidate:BardClient.Candidate) =
 
             let safetyRatingElements =
                 div [ _style "font-size: small"] (candidate.safetyRatings |> List.map safetyRatingToHtml |> List.filter Option.isSome |> List.map Option.get)
 
+            let citationElements =
+                div [] (candidate.citationSources |> List.map citationToHtml)
+
             let outputDiv =
-                div [
-                    _style "border: 2px solid gray; padding: 10px;"
-                ] [
+                div [] [
                     Markdig.Markdown.ToHtml(candidate.output) |> rawText 
                 ]
 
-            div [
-                _style "margin-bottom: 20px;"
-            ] [
+            div [_class "box"] [
                 outputDiv
                 safetyRatingElements
+                citationElements
             ]
         
         match response.candidates with
         | [] -> []
         | _ ->
             [
-                h1 [] [ encodedText $"Answers ({response.candidates.Length})" ]
-                div [] (response.candidates |> List.map candidateToHtml)
+                div [_class "content"] [
+                    h1 [] [ encodedText $"Answers ({response.candidates.Length})" ]
+                    div [] (response.candidates |> List.map candidateToHtml)
+                ]
             ]
 
     let render questionText candidates =
-        let formElements = questionText |> form
-
+        let questionElements = questionText |> questionView
         let responseElements = candidates |> responseView
 
-        let elements = List.concat [formElements; responseElements]
+        let columns = div [ _class "columns" ] [
+            div [ _class "column" ] questionElements
+            div [ _class "column" ] responseElements
+        ]
 
-        elements |> layout
+        [columns] |> layout

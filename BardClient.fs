@@ -28,11 +28,30 @@ module BardClient =
             probability : string
         }
 
+    type CitationSource =
+        {
+            startIndex : int
+            endIndex : int
+            uri : string
+            license : string
+        }
+
+    type CitationMetadata =
+        {
+            citationSources : List<CitationSource>
+        }
+
     type Candidate =
         {
             output : string
             safetyRatings : List<SafetyRating>
+            citationMetadata : Option<CitationMetadata>
         }
+
+        member this.citationSources =
+            match this.citationMetadata with
+            | Some metadata -> metadata.citationSources
+            | None -> []
 
     type Candidates = 
         {
