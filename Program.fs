@@ -25,9 +25,11 @@ module Handlers =
                     | Some text -> text
                     | None      -> ""
 
-                let! response = BardClient.askQuestion questionText
+                let! bardResponse = BardClient.generateResponse questionText
+
+                let! openAiResponse = OpenAIClient.generateResponse questionText
                     
-                let view = Views.render questionText (response.Result)
+                let view = Views.render questionText bardResponse openAiResponse
                 return! (view |> htmlView) next ctx
             }
             
@@ -91,10 +93,9 @@ let configureServices (services : IServiceCollection) =
     
     builder.AddUserSecrets<Placeholder>() |> ignore // had to create this type to get it to work
     let config = builder.Build()
-    let bardKey = config["bardkey"]
-    // read from user's secrets bardkey
-    BardClient.init bardKey
-
+    config["bardkey"] |> BardClient.init
+    config["openaikey"] |> OpenAIClient.init
+    
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddConsole()
            .AddDebug() |> ignore

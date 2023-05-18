@@ -2,6 +2,7 @@ namespace generative_playground
 
 module Views =
     open Giraffe.ViewEngine
+    open OpenAI.Chat
 
     let layout (content: XmlNode list) =
         html [] [
@@ -31,7 +32,6 @@ module Views =
                 ] [
                 div [] [
                     div [_class "field"] [
-                        label [_for "question"] [ encodedText "Question" ]
                         textarea [
                             _id "question"
                             _name "question"
@@ -56,7 +56,7 @@ module Views =
             ]
         ]
 
-    let responseView (response:BardClient.Candidates) =
+    let bardResponseView (response:BardClient.Candidates) =
         let safetyRatingToHtml (safetyRating:BardClient.SafetyRating) =
             match safetyRating.probability with
             | "NEGLIGIBLE" -> None
@@ -98,18 +98,46 @@ module Views =
         | _ ->
             [
                 div [_class "content"] [
-                    h1 [] [ encodedText $"Answers ({response.candidates.Length})" ]
+                    h1 [] [ encodedText $"Bard ({response.candidates.Length})" ]
                     div [] (response.candidates |> List.map candidateToHtml)
                 ]
             ]
 
-    let render questionText candidates =
-        let questionElements = questionText |> questionView
-        let responseElements = candidates |> responseView
+    let openAiResponseView (response:ChatResponse) =
+        let choiceToHtml (choice:Choice) =
 
-        let columns = div [ _class "columns" ] [
-            div [ _class "column" ] questionElements
-            div [ _class "column" ] responseElements
+            let finishReason =
+                div [ _class "is-size-6"] [$"finish reason: {choice.FinishReason}" |> encodedText]
+
+            let outputDiv =
+                div [] [
+                    Markdig.Markdown.ToHtml(choice.Message) |> rawText 
+                ]
+
+            div [_class "box"] [
+                outputDiv
+                finishReason
+            ]
+
+        [
+            div [_class "content"] [
+                h1 [] [ encodedText $"OpenAI ({response.Choices.Count})" ]
+                div [] (response.Choices |> List.ofSeq |> List.map choiceToHtml)
+                div [ _class "is-size-6"] [
+                    encodedText $"Processing time: {response.ProcessingTime}ms"
+                ]
+            ]
         ]
+
+    let render questionText bardResponse (openAiResponse:ChatResponse) =
+        let questionElements = questionText |> questionView
+        let bardResponseElements = bardResponse |> bardResponseView
+        let openAiResponseElements = openAiResponse |> openAiResponseView
+
+        let columns = div [ _class "columns mt-10" ] [
+            div [ _class "column is-one-quarter" ] questionElements
+            div [ _class "column" ] bardResponseElements
+            div [ _class "column" ] openAiResponseElements
+         ]
 
         [columns] |> layout

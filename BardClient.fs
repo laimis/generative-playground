@@ -62,28 +62,26 @@ module BardClient =
 
     let mutable key = ""
     let init (apiKey:string) =
-        if (System.String.IsNullOrEmpty(apiKey)) then
+        match apiKey with
+        | x when System.String.IsNullOrWhiteSpace(x) -> 
             System.Console.WriteLine("Please set the API key in BardClient.fs")
             raise (System.Exception("API key not set"))
-        else
-            System.Console.WriteLine("API key set " + apiKey + "...")
+        | _ ->
             key <- apiKey
 
     let generateTextEndpoint = $"https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText"
 
-    let askQuestion (question:string) =
+    let generateResponse (prompt:string) =
         task {
-            if (question = "") then
-                return System.Threading.Tasks.Task.FromResult({ candidates = [] })
+            if (prompt = "") then
+                return { candidates = [] }
             else
-                let request = GenerateTextRequest.create question
+                let request = GenerateTextRequest.create prompt
                 let json = System.Text.Json.JsonSerializer.Serialize(request)
                 let content: StringContent = new StringContent(json)
                 let url = generateTextEndpoint + "?key=" + key
                 let! response = client.PostAsync(url, content)
                 let! responseText = response.Content.ReadAsStringAsync()
                 System.Console.WriteLine(responseText)
-                return System.Threading.Tasks.Task.FromResult(
-                    System.Text.Json.JsonSerializer.Deserialize<Candidates>(responseText)
-                )
+                return System.Text.Json.JsonSerializer.Deserialize<Candidates>(responseText)
         }
