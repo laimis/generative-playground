@@ -41,21 +41,36 @@ module Views =
                             ]
                     ]
                     div [_class "field"] [
-                        button [
-                            _class "button is-primary"
-                            _type "submit"
-                        ] [ encodedText "Generate" ]
-
                         label [
                             _class "checkbox"
                         ] [
                             input [
-                                _class "checkbox"
                                 _type "checkbox"
                                 _name "useOpenAI"
                             ]
-                            encodedText "Use OpenAI"
+                            rawText "Use OpenAI"
                         ]
+                    ]
+                    div [_class "field"] [
+                        label [
+                            _for "temperature"
+                            _class "label"
+                        ] [
+                            encodedText "Temperature (from 0 to 1, optional)"
+                        ]
+                        input [
+                            _id "temperature"
+                            _name "temperature"
+                            _class "input"
+                            _type "number"
+                            _value ""
+                        ]
+                    ]
+                    div [_class "field"] [
+                        button [
+                            _class "button is-primary"
+                            _type "submit"
+                        ] [ encodedText "Generate" ]
                     ]
                 ]
             ]

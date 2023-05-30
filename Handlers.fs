@@ -14,6 +14,8 @@ module Handlers =
                     ctx.GetFormValue("useOpenAI")
                     |> Option.map (fun value -> value = "on")
 
+                let temperatureOption = ctx.GetFormValue("temperature")
+
                 let questionText =
                     match question with
                     | Some text -> text
@@ -24,7 +26,15 @@ module Handlers =
                     | Some value -> value
                     | None       -> false
 
-                let! bardResponse = BardClient.generateResponse questionText
+                let temparture =
+                    match temperatureOption with
+                    | Some value -> 
+                        match value with
+                        | "" -> None
+                        | _  -> Some (float value)
+                    | None       -> None
+
+                let! bardResponse = BardClient.generateResponse questionText temparture
 
                  // openai too close, exclude until we get that option questionText
                 let! openAiResponse =

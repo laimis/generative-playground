@@ -11,14 +11,14 @@ module BardClient =
     type GenerateTextRequest = 
         {
             prompt : Prompt
-            temperature : float
+            temperature : float option
             candidate_count: int
         }
 
-        static member create (question:string) =
+        static member create (question:string) temperature =
             {
                 prompt = { text = question }
-                temperature = 0.8
+                temperature = temperature
                 candidate_count = 5
             }
 
@@ -112,13 +112,20 @@ module BardClient =
 
     let generateTextEndpoint = $"https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText"
 
-    let generateResponse (prompt:string) =
+    let getModels() =
+        task {
+            let url = $"https://generativelanguage.googleapis.com/v1beta2/models"
+            let! response = client.GetAsync(url)
+            let! responseText = response.Content.ReadAsStringAsync()
+            System.Console.WriteLine(responseText)
+        }
+    let generateResponse (prompt:string) temperature =
         task {
             if (prompt = "") then
                 let candidates = []
                 return BardResponse({ candidates = candidates; filters = None; safetyFeedback = [] })
             else
-                let request = GenerateTextRequest.create prompt
+                let request = GenerateTextRequest.create prompt temperature
                 let json = System.Text.Json.JsonSerializer.Serialize(request)
                 let content: StringContent = new StringContent(json)
                 let url = generateTextEndpoint + "?key=" + key
