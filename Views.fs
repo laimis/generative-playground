@@ -105,14 +105,46 @@ module Views =
             ]
 
         match response with
-        | BardClient.BardResponse(candidates) -> 
-            match candidates.candidates with
-            | [] -> []
-            | candidates ->
+        | BardClient.BardResponse(candidates) ->
+            match candidates.filters with
+            | [] -> 
+                match candidates.candidates with
+                | [] -> []
+                | candidates ->
+                    [
+                        div [_class "content"] [
+                            h1 [] [ encodedText $"Bard ({candidates.Length})" ]
+                            div [] (candidates |> List.distinctBy (fun c -> c.output) |> List.map candidateToHtml)
+                        ]
+                    ]
+            | filters ->
+
+                let safetyFeedbackElements (safetyFeedback:BardClient.SafetyFeedback) =
+                    div [] [
+                        div [] [encodedText $"rating category: {safetyFeedback.rating.category}"]
+                        div [] [encodedText $"rating probability: {safetyFeedback.rating.probability}"]
+                        div [] [encodedText $"setting category: {safetyFeedback.setting.category}"]
+                        div [] [encodedText $"setting threshold: {safetyFeedback.setting.threshold}"]
+                    ]
+
+                let safetyFeedback = 
+                    div [] [
+                        div [] [
+                            encodedText "Safety Feedback"
+                        ]
+                        div [] (candidates.safetyFeedback |> List.map safetyFeedbackElements)
+                    ]
+
                 [
                     div [_class "content"] [
-                        h1 [] [ encodedText $"Bard ({candidates.Length})" ]
-                        div [] (candidates |> List.distinctBy (fun c -> c.output) |> List.map candidateToHtml)
+                        h1 [] [ encodedText $"Bard filter kicked in" ]
+                        div [] [
+                            div [] [
+                                encodedText "Filtered"
+                            ]
+                            div [] (filters |> List.map (fun f -> encodedText f.reason))
+                        ]
+                        safetyFeedback
                     ]
                 ]
         | BardClient.BardError(bardError) ->

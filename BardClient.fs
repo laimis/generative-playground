@@ -53,8 +53,33 @@ module BardClient =
             | Some metadata -> metadata.citationSources
             | None -> []
 
+    type Filter =
+        {
+            reason : string
+        }
+
+    type SafetyFeedbackRating =
+        {
+            category : string
+            probability : string
+        }
+
+    type SafetyFeedbackSetting =
+        {
+            category : string
+            threshold : string
+        }
+
+    type SafetyFeedback =
+        {
+            rating : SafetyFeedbackRating
+            setting : SafetyFeedbackSetting
+        }
+
     type Candidates = 
         {
+            filters: List<Filter>
+            safetyFeedback: List<SafetyFeedback>
             candidates : List<Candidate>
         }
 
@@ -91,7 +116,7 @@ module BardClient =
         task {
             if (prompt = "") then
                 let candidates = []
-                return BardResponse({ candidates = candidates })
+                return BardResponse({ candidates = candidates; filters = []; safetyFeedback = [] })
             else
                 let request = GenerateTextRequest.create prompt
                 let json = System.Text.Json.JsonSerializer.Serialize(request)
