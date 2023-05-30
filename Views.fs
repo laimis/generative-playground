@@ -107,7 +107,7 @@ module Views =
         match response with
         | BardClient.BardResponse(candidates) ->
             match candidates.filters with
-            | [] -> 
+            | None -> 
                 match candidates.candidates with
                 | [] -> []
                 | candidates ->
@@ -117,7 +117,7 @@ module Views =
                             div [] (candidates |> List.distinctBy (fun c -> c.output) |> List.map candidateToHtml)
                         ]
                     ]
-            | filters ->
+            | Some filters ->
 
                 let safetyFeedbackElements (safetyFeedback:BardClient.SafetyFeedback) =
                     div [] [

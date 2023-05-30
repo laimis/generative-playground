@@ -78,7 +78,7 @@ module BardClient =
 
     type Candidates = 
         {
-            filters: List<Filter>
+            filters: List<Filter> option
             safetyFeedback: List<SafetyFeedback>
             candidates : List<Candidate>
         }
@@ -116,7 +116,7 @@ module BardClient =
         task {
             if (prompt = "") then
                 let candidates = []
-                return BardResponse({ candidates = candidates; filters = []; safetyFeedback = [] })
+                return BardResponse({ candidates = candidates; filters = None; safetyFeedback = [] })
             else
                 let request = GenerateTextRequest.create prompt
                 let json = System.Text.Json.JsonSerializer.Serialize(request)
