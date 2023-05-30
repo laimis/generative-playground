@@ -44,19 +44,30 @@ module Views =
                         button [
                             _class "button is-primary"
                             _type "submit"
-                        ] [ encodedText "Ask" ]
+                        ] [ encodedText "Generate" ]
+
+                        label [
+                            _class "checkbox"
+                        ] [
+                            input [
+                                _class "checkbox"
+                                _type "checkbox"
+                                _name "useOpenAI"
+                            ]
+                            encodedText "Use OpenAI"
+                        ]
                     ]
                 ]
             ]
         
         [
             div [_class "content"] [
-                h1 [] [ encodedText "Ask a Question" ]
+                h1 [] [ encodedText "Enter Prompt" ]
                 formElement
             ]
         ]
 
-    let bardResponseView (response:BardClient.Candidates) =
+    let bardResponseView (response:BardClient.BardResponse) =
         let safetyRatingToHtml (safetyRating:BardClient.SafetyRating) =
             match safetyRating.probability with
             | "NEGLIGIBLE" -> None
@@ -92,14 +103,30 @@ module Views =
                 safetyRatingElements
                 citationElements
             ]
-        
-        match response.candidates with
-        | [] -> []
-        | _ ->
+
+        match response with
+        | BardClient.BardResponse(candidates) -> 
+            match candidates.candidates with
+            | [] -> []
+            | candidates ->
+                [
+                    div [_class "content"] [
+                        h1 [] [ encodedText $"Bard ({candidates.Length})" ]
+                        div [] (candidates |> List.distinctBy (fun c -> c.output) |> List.map candidateToHtml)
+                    ]
+                ]
+        | BardClient.BardError(bardError) ->
             [
+                let code = bardError.error.code
+                let message = bardError.error.message
+                let status = bardError.error.status
+
                 div [_class "content"] [
-                    h1 [] [ encodedText $"Bard ({response.candidates.Length})" ]
-                    div [] (response.candidates |> List.map candidateToHtml)
+                    h1 [] [ encodedText $"Bard Error ({code})" ]
+                    div [] [
+                        div [] [encodedText $"Message: {message}"]
+                        div [] [encodedText $"Status: {status}"]
+                    ]
                 ]
             ]
 
@@ -119,17 +146,20 @@ module Views =
                 finishReason
             ]
 
-        [
-            div [_class "content"] [
-                h1 [] [ encodedText $"OpenAI ({response.Choices.Count})" ]
-                div [] (response.Choices |> List.ofSeq |> List.map choiceToHtml)
-                div [ _class "is-size-6"] [
-                    encodedText $"Processing time: {response.ProcessingTime}ms"
+        match response.Choices with
+        | null -> []
+        | _ ->
+            [
+                div [_class "content"] [
+                    h1 [] [ encodedText $"OpenAI ({response.Choices.Count})" ]
+                    div [] (response.Choices |> List.ofSeq |> List.map choiceToHtml)
+                    div [ _class "is-size-6"] [
+                        encodedText $"Processing time: {response.ProcessingTime}ms"
+                    ]
                 ]
             ]
-        ]
 
-    let render questionText bardResponse (openAiResponse:ChatResponse) =
+    let render questionText (bardResponse:BardClient.BardResponse) (openAiResponse:ChatResponse) =
         let questionElements = questionText |> questionView
         let bardResponseElements = bardResponse |> bardResponseView
         let openAiResponseElements = openAiResponse |> openAiResponseView

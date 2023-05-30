@@ -58,9 +58,25 @@ module BardClient =
             candidates : List<Candidate>
         }
 
-    let client = new HttpClient()
+    type BardErrorDetails =
+        {
+            code : int
+            message : string
+            status : string
+        }
 
-    let mutable key = ""
+    type BardError =
+        {
+            error : BardErrorDetails
+        }
+
+    type BardResponse =
+        | BardResponse of Candidates
+        | BardError of BardError
+
+    let private client = new HttpClient()
+
+    let mutable private key = ""
     let init (apiKey:string) =
         match apiKey with
         | x when System.String.IsNullOrWhiteSpace(x) -> 
@@ -74,7 +90,8 @@ module BardClient =
     let generateResponse (prompt:string) =
         task {
             if (prompt = "") then
-                return { candidates = [] }
+                let candidates = []
+                return BardResponse({ candidates = candidates })
             else
                 let request = GenerateTextRequest.create prompt
                 let json = System.Text.Json.JsonSerializer.Serialize(request)
@@ -83,5 +100,12 @@ module BardClient =
                 let! response = client.PostAsync(url, content)
                 let! responseText = response.Content.ReadAsStringAsync()
                 System.Console.WriteLine(responseText)
-                return System.Text.Json.JsonSerializer.Deserialize<Candidates>(responseText)
+
+                match response.IsSuccessStatusCode with
+                | false -> 
+                    let error = System.Text.Json.JsonSerializer.Deserialize<BardError>(responseText)
+                    return BardError(error)
+                | true ->
+                    let candidates = System.Text.Json.JsonSerializer.Deserialize<Candidates>(responseText)
+                    return BardResponse(candidates)
         }

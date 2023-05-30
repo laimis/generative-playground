@@ -10,30 +10,7 @@ open Microsoft.Extensions.Logging
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
-
-
-module Handlers =
-    
-    let handler : HttpHandler =
-        fun (next : HttpFunc) (ctx : Microsoft.AspNetCore.Http.HttpContext) ->
-            task {
-                let question =
-                    ctx.GetFormValue("question")
-
-                let questionText =
-                    match question with
-                    | Some text -> text
-                    | None      -> ""
-
-                let! bardResponse = BardClient.generateResponse questionText
-
-                let! openAiResponse = OpenAIClient.generateResponse questionText
-                    
-                let view = Views.render questionText bardResponse openAiResponse
-                return! (view |> htmlView) next ctx
-            }
             
-
 // ---------------------------------
 // Web app
 // ---------------------------------
