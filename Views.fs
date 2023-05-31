@@ -67,10 +67,15 @@ module Views =
                         ]
                     ]
                     div [_class "field"] [
-                        label [] [
+                        label [
+                            _for "model"
+                            _class "label"
+                        ] [
                             encodedText "Model"
                         ]
-                        div [] (bardModels.models |> List.map (fun model -> div [] [ model.name |> encodedText ]))
+                        div [_class "select"] [
+                            select [] (bardModels.models |> List.map (fun model -> option [_value model.name;] [model.name |> encodedText]))
+                        ]
                     ]
                     div [_class "field"] [
                         button [
@@ -217,14 +222,26 @@ module Views =
         bardModels
         (bardResponse:BardClient.BardResponse)
         (openAiResponse:ChatResponse) =
-        let questionElements = bardModels |> questionView questionText
-        let bardResponseElements = bardResponse |> bardResponseView
-        let openAiResponseElements = openAiResponse |> openAiResponseView
 
-        let columns = div [ _class "columns mt-10" ] [
-            div [ _class "column is-one-quarter" ] questionElements
-            div [ _class "column" ] bardResponseElements
-            div [ _class "column" ] openAiResponseElements
-         ]
+        let questionSection = bardModels    |> questionView questionText
+        let bardSection = bardResponse      |> bardResponseView
+        let openAISection = openAiResponse  |> openAiResponseView
 
-        [columns] |> layout
+        let responseDivs =
+            [
+            Some (bardSection)
+            (
+                match openAiResponse.Choices with
+                | null -> None
+                | _ -> Some (openAISection)
+            )
+            ]
+            |> List.filter Option.isSome
+            |> List.map Option.get
+            |> List.map (fun elem -> div [ _class "column" ] elem)
+
+        let columns = [ (div [ _class "column is-one-quarter" ] questionSection)] @ responseDivs
+
+        let view = div [ _class "columns mt-10" ] columns
+
+        [view] |> layout

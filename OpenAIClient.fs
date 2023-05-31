@@ -16,10 +16,7 @@ module OpenAIClient =
 
     let generateResponse prompt =
         task {
-            if (prompt = "") then
-                return new ChatResponse()
-            else
-                let message = Message(Role.User, prompt)
-                let prompts = new ChatRequest([message], model)
-                return! api.ChatEndpoint.GetCompletionAsync(prompts)
+            let message = Message(Role.User, prompt)
+            let prompts = new ChatRequest([message], model)
+            return! api.ChatEndpoint.GetCompletionAsync(prompts)
         }

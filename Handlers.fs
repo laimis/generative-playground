@@ -65,7 +65,7 @@ module Handlers =
                  // openai too close, exclude until we get that option questionText
                 let! openAiResponse =
                     match useOpenAI with
-                    | false -> OpenAIClient.generateResponse ""
+                    | false -> System.Threading.Tasks.Task.FromResult(new OpenAI.Chat.ChatResponse())
                     | true -> OpenAIClient.generateResponse questionText
                     
                 let view = Views.render questionText bardModels bardResponse openAiResponse

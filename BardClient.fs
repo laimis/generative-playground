@@ -138,6 +138,8 @@ module BardClient =
     let private client = new HttpClient()
 
     let mutable private key = ""
+    let private baseUrl = "https://generativelanguage.googleapis.com/v1beta2"
+
     let init (apiKey:string) =
         match apiKey with
         | x when System.String.IsNullOrWhiteSpace(x) -> 
@@ -146,10 +148,8 @@ module BardClient =
         | _ ->
             key <- apiKey
 
-    let generateTextEndpoint = $"https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText"
-
     let toUrl endpoint =
-        endpoint + "?key=" + key
+        $"{baseUrl}{endpoint}?key={key}"
 
     let private post endpoint data =
         task {
@@ -173,26 +173,21 @@ module BardClient =
 
     let getModels() =
         task {
-            let url = $"https://generativelanguage.googleapis.com/v1beta2/models"
-            let! (_, responseText) = get url
+            let! (_, responseText) = get "/models"
             return System.Text.Json.JsonSerializer.Deserialize<Models>(responseText)
         }
 
     let generateResponse (prompt:string) temperature =
         task {
-            if (prompt = "") then
-                let candidates = []
-                return BardResponse({ candidates = candidates; filters = None; safetyFeedback = [] })
-            else
-                let request = GenerateTextRequest.create prompt temperature
+            let request = GenerateTextRequest.create prompt temperature
 
-                let! (response, responseText) = post generateTextEndpoint request
+            let! (response, responseText) = post "/models/text-bison-001:generateText" request
 
-                match response.IsSuccessStatusCode with
-                | false -> 
-                    let error = System.Text.Json.JsonSerializer.Deserialize<BardError>(responseText)
-                    return BardError(error)
-                | true ->
-                    let candidates = System.Text.Json.JsonSerializer.Deserialize<Candidates>(responseText)
-                    return BardResponse(candidates)
+            match response.IsSuccessStatusCode with
+            | false -> 
+                let error = System.Text.Json.JsonSerializer.Deserialize<BardError>(responseText)
+                return BardError(error)
+            | true ->
+                let candidates = System.Text.Json.JsonSerializer.Deserialize<Candidates>(responseText)
+                return BardResponse(candidates)
         }
