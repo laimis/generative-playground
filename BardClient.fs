@@ -3,6 +3,40 @@ namespace generative_playground
 module BardClient =
     open System.Net.Http
 
+    // {
+    //   "name": "models/chat-bison-001",
+    //   "version": "001",
+    //   "displayName": "Chat Bison",
+    //   "description": "Chat-optimized generative language model.",
+    //   "inputTokenLimit": 4096,
+    //   "outputTokenLimit": 1024,
+    //   "supportedGenerationMethods": [
+    //     "generateMessage"
+    //   ],
+    //   "temperature": 0.25,
+    //   "topP": 0.95,
+    //   "topK": 40
+    // },
+
+    type Model =
+        {
+            name : string
+            version : string
+            displayName : string
+            description : string
+            inputTokenLimit : int
+            outputTokenLimit : int
+            supportedGenerationMethods : List<string>
+            temperature : float option
+            topP : float option
+            topK : int option
+        }
+
+    type Models =
+        {
+            models : List<Model>
+        }
+
     type Prompt =
         {
             text : string
@@ -99,6 +133,8 @@ module BardClient =
         | BardResponse of Candidates
         | BardError of BardError
 
+    type private HttpResponse = (HttpResponseMessage * string)
+
     let private client = new HttpClient()
 
     let mutable private key = ""
@@ -112,13 +148,36 @@ module BardClient =
 
     let generateTextEndpoint = $"https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText"
 
-    let getModels() =
+    let toUrl endpoint =
+        endpoint + "?key=" + key
+
+    let private post endpoint data =
         task {
-            let url = $"https://generativelanguage.googleapis.com/v1beta2/models"
+            let json = System.Text.Json.JsonSerializer.Serialize(data)
+            let content: StringContent = new StringContent(json)
+            let url = endpoint |> toUrl
+            let! response = client.PostAsync(url, content)
+            let! responseText = response.Content.ReadAsStringAsync()
+            System.Console.WriteLine(responseText)
+            return HttpResponse(response, responseText)
+        }
+
+    let private get endpoint =
+        task {
+            let url = endpoint |> toUrl
             let! response = client.GetAsync(url)
             let! responseText = response.Content.ReadAsStringAsync()
             System.Console.WriteLine(responseText)
+            return HttpResponse(response, responseText)
         }
+
+    let getModels() =
+        task {
+            let url = $"https://generativelanguage.googleapis.com/v1beta2/models"
+            let! (_, responseText) = get url
+            return System.Text.Json.JsonSerializer.Deserialize<Models>(responseText)
+        }
+
     let generateResponse (prompt:string) temperature =
         task {
             if (prompt = "") then
@@ -126,12 +185,8 @@ module BardClient =
                 return BardResponse({ candidates = candidates; filters = None; safetyFeedback = [] })
             else
                 let request = GenerateTextRequest.create prompt temperature
-                let json = System.Text.Json.JsonSerializer.Serialize(request)
-                let content: StringContent = new StringContent(json)
-                let url = generateTextEndpoint + "?key=" + key
-                let! response = client.PostAsync(url, content)
-                let! responseText = response.Content.ReadAsStringAsync()
-                System.Console.WriteLine(responseText)
+
+                let! (response, responseText) = post generateTextEndpoint request
 
                 match response.IsSuccessStatusCode with
                 | false -> 

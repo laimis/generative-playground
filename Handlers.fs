@@ -4,7 +4,31 @@ module Handlers =
     
     open Giraffe
 
-    let handler : HttpHandler =
+    let mutable private inMemoryModels : BardClient.Models option = None
+
+    let getModels () =
+        task {
+            let! models =
+                match inMemoryModels with
+                | Some models -> System.Threading.Tasks.Task.FromResult(models)
+                | None        -> BardClient.getModels()
+
+            return models
+        }
+
+    let getHandler : HttpHandler =
+        fun (next : HttpFunc) (ctx : Microsoft.AspNetCore.Http.HttpContext) -> task {
+
+            let! models = getModels()
+
+            inMemoryModels <- Some models
+
+            let view = Views.questionView "" models
+            let layout = Views.layout view
+            return! (layout |> htmlView) next ctx
+        }
+
+    let postHandler : HttpHandler =
         fun (next : HttpFunc) (ctx : Microsoft.AspNetCore.Http.HttpContext) ->
             task {
                 let question =
@@ -34,6 +58,8 @@ module Handlers =
                         | _  -> Some (float value)
                     | None       -> None
 
+                let! bardModels = getModels() 
+
                 let! bardResponse = BardClient.generateResponse questionText temparture
 
                  // openai too close, exclude until we get that option questionText
@@ -42,6 +68,6 @@ module Handlers =
                     | false -> OpenAIClient.generateResponse ""
                     | true -> OpenAIClient.generateResponse questionText
                     
-                let view = Views.render questionText bardResponse openAiResponse
+                let view = Views.render questionText bardModels bardResponse openAiResponse
                 return! (view |> htmlView) next ctx
             }

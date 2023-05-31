@@ -24,7 +24,7 @@ module Views =
             ]
         ]
 
-    let questionView (text:string) =
+    let questionView (text:string) (bardModels:BardClient.Models) =
         let formElement =
             form [ 
                 _action "/"
@@ -65,6 +65,12 @@ module Views =
                             _type "number"
                             _value ""
                         ]
+                    ]
+                    div [_class "field"] [
+                        label [] [
+                            encodedText "Model"
+                        ]
+                        div [] (bardModels.models |> List.map (fun model -> div [] [ model.name |> encodedText ]))
                     ]
                     div [_class "field"] [
                         button [
@@ -206,8 +212,12 @@ module Views =
                 ]
             ]
 
-    let render questionText (bardResponse:BardClient.BardResponse) (openAiResponse:ChatResponse) =
-        let questionElements = questionText |> questionView
+    let render
+        questionText
+        bardModels
+        (bardResponse:BardClient.BardResponse)
+        (openAiResponse:ChatResponse) =
+        let questionElements = bardModels |> questionView questionText
         let bardResponseElements = bardResponse |> bardResponseView
         let openAiResponseElements = openAiResponse |> openAiResponseView
 

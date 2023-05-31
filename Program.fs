@@ -19,12 +19,12 @@ let webApp =
     choose [
         GET >=>
             choose [
-                route "/" >=> Handlers.handler
+                route "/" >=> Handlers.getHandler
             ]
 
         POST >=>
             choose [
-                route "/" >=> Handlers.handler
+                route "/" >=> Handlers.postHandler
             ]
         setStatusCode 404 >=> text "Not Found" ]
 
@@ -58,12 +58,15 @@ let configureApp (app : IApplicationBuilder) =
         app .UseGiraffeErrorHandler(errorHandler)
             .UseHttpsRedirection())
         .UseCors(configureCors)
+        .UseSession()
         .UseStaticFiles()
         .UseGiraffe(webApp)
 
 type Placeholder = {something:int}
 let configureServices (services : IServiceCollection) =
     services.AddCors()    |> ignore
+    services.AddDistributedMemoryCache() |> ignore
+    services.AddSession() |> ignore
     services.AddGiraffe() |> ignore
     
     let builder = new ConfigurationBuilder()
