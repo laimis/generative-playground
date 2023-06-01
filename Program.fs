@@ -24,7 +24,7 @@ let webApp =
 
         POST >=>
             choose [
-                route "/" >=> Handlers.postHandler
+                route "/" >=> Handlers.generateHandler
             ]
         setStatusCode 404 >=> text "Not Found" ]
 

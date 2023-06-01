@@ -24,7 +24,7 @@ module Views =
             ]
         ]
 
-    let questionView (text:string) (bardModels:BardClient.Models) =
+    let questionView (bardModels:BardClient.Models) (historyEntries:History.Entry list) (prompt:string) =
         let formElement =
             form [ 
                 _action "/"
@@ -36,9 +36,7 @@ module Views =
                             _id "question"
                             _name "question"
                             _class "textarea"
-                            ] [
-                                rawText text
-                            ]
+                            ] [ rawText prompt ]
                     ]
                     div [_class "field"] [
                         label [
@@ -55,9 +53,7 @@ module Views =
                         label [
                             _for "temperature"
                             _class "label"
-                        ] [
-                            encodedText "Temperature (from 0 to 1, optional)"
-                        ]
+                        ] [ rawText "Temperature (from 0 to 1, optional)" ]
                         input [
                             _id "temperature"
                             _name "temperature"
@@ -70,9 +66,7 @@ module Views =
                         label [
                             _for "model"
                             _class "label"
-                        ] [
-                            encodedText "Model"
-                        ]
+                        ] [ encodedText "Model" ]
                         div [_class "select"] [
                             select [] (bardModels.models |> List.map (fun model -> option [_value model.name;] [model.name |> encodedText]))
                         ]
@@ -90,6 +84,13 @@ module Views =
             div [_class "content"] [
                 h1 [] [ encodedText "Enter Prompt" ]
                 formElement
+            ]
+            div [_class "content"] [
+                h3 [] [ encodedText "History" ]
+                ul [] (
+                    historyEntries
+                    |> List.map (fun entry -> li [] [ entry.Question |> encodedText ])
+                )
             ]
         ]
 
@@ -223,7 +224,7 @@ module Views =
         (bardResponse:BardClient.BardResponse)
         (openAiResponse:ChatResponse) =
 
-        let questionSection = bardModels    |> questionView questionText
+        let questionSection = questionText  |> questionView bardModels (History.getHistory()) 
         let bardSection = bardResponse      |> bardResponseView
         let openAISection = openAiResponse  |> openAiResponseView
 

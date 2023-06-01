@@ -117,6 +117,11 @@ module BardClient =
             candidates : List<Candidate>
         }
 
+        member this.firstCandidate =
+            match this.candidates with
+            | [] -> None
+            | candidate :: _ -> Some candidate
+
     type BardErrorDetails =
         {
             code : int
