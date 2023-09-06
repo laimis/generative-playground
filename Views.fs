@@ -89,12 +89,18 @@ module Views =
                 h3 [] [ encodedText "History" ]
                 ul [] (
                     historyEntries
-                    |> List.map (fun entry -> li [] [ entry.Question |> encodedText ])
+                    |> List.indexed
+                    |> List.map (fun (index, entry) -> li [] [
+                        div [] [
+                            entry.Question |> encodedText
+                        ]
+                        a [ _href $"/history?index={index}"] [ encodedText "View" ]
+                    ])
                 )
             ]
         ]
 
-    let bardResponseView (response:BardClient.BardResponse) =
+    let private bardResponseView (response:BardClient.BardResponse) =
         let safetyRatingToHtml (safetyRating:BardClient.SafetyRating) =
             match safetyRating.probability with
             | "NEGLIGIBLE" -> None
@@ -189,7 +195,7 @@ module Views =
                 ]
             ]
 
-    let openAiResponseView (response:ChatResponse) =
+    let private openAiResponseView (response:ChatResponse) =
         let choiceToHtml (choice:Choice) =
 
             let finishReason =
@@ -246,3 +252,35 @@ module Views =
         let view = div [ _class "columns mt-10" ] columns
 
         [view] |> layout
+
+    let error message =
+        let view = div [ _class "content" ] [
+            h1 [] [ encodedText "Error" ]
+            div [] [ encodedText message ]
+        ]
+        [view] |> layout
+
+    let renderHistoryEntry (entry:History.Entry) =
+
+        let question = entry.Question
+        let answer = entry.Answer
+        let temperature = entry.Temperature
+
+        let questionDiv =
+            div [] [
+                encodedText question
+            ]
+
+        let answerDiv =
+            div [] [
+                Markdig.Markdown.ToHtml(answer) |> rawText
+            ]
+
+        let temperatureDiv =
+            match temperature with
+            | Some t -> div [] [ encodedText $"Temperature: {t}" ]
+            | None -> div [] []
+
+        let divs = [questionDiv; answerDiv; temperatureDiv]
+
+        [div [_class "box"] divs] |> layout

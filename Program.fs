@@ -20,6 +20,7 @@ let webApp =
         GET >=>
             choose [
                 route "/" >=> Handlers.getHandler
+                route "/history" >=> Handlers.loadHistoryEntryHandler
             ]
 
         POST >=>

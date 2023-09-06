@@ -95,3 +95,24 @@ module Handlers =
                 let view = Views.render (input.Question) bardModels bardResponse openAiResponse
                 return! (view |> htmlView) next ctx
             }
+
+    let loadHistoryEntryHandler : HttpHandler =
+        fun (next : HttpFunc) (ctx : Microsoft.AspNetCore.Http.HttpContext) ->
+            task {
+                let id = ctx.GetFormValue("index")
+                
+                // parse index value from id
+                let index =
+                    match id with
+                    | Some value -> int value
+                    | None       -> 0
+                
+                let entry = History.getEntry index
+                match entry with
+                | Some e ->
+                    let view = Views.renderHistoryEntry e
+                    return! (view |> htmlView) next ctx
+                | None ->
+                    let layout = Views.error "History entry not found"
+                    return! (layout |> htmlView) next ctx
+            }

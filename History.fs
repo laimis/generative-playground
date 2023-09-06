@@ -16,3 +16,6 @@ module History =
 
     let getHistory () =
         history
+
+    let getEntry (index:int) =
+        history |> List.tryItem index
