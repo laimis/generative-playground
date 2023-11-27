@@ -95,6 +95,24 @@ module Handlers =
                 let view = Views.render (input.Question) bardModels bardResponse openAiResponse
                 return! (view |> htmlView) next ctx
             }
+            
+    let imageHandler : HttpHandler =
+        fun (next : HttpFunc) (ctx : Microsoft.AspNetCore.Http.HttpContext) ->
+            task {
+                let prompt = ctx.GetFormValue("prompt")
+                
+                let! view =
+                    match prompt with
+                    | Some value -> task {
+                            let! images = OpenAIClient.generateImage value
+                            return Views.renderImages value images   
+                        }
+                    | None       -> task {
+                            return Views.error "No prompt provided"
+                        }
+                
+                return! (view |> htmlView) next ctx
+            }
 
     let loadHistoryEntryHandler : HttpHandler =
         fun (next : HttpFunc) (ctx : Microsoft.AspNetCore.Http.HttpContext) ->

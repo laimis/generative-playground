@@ -26,6 +26,7 @@ let webApp =
         POST >=>
             choose [
                 route "/" >=> Handlers.generateHandler
+                route "/image" >=> Handlers.imageHandler
             ]
         setStatusCode 404 >=> text "Not Found" ]
 

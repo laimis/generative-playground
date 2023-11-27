@@ -20,3 +20,14 @@ module OpenAIClient =
             let prompts = new ChatRequest([message], model)
             return! api.ChatEndpoint.GetCompletionAsync(prompts)
         }
+        
+    let generateImage prompt =
+        task {
+            let request = OpenAI.Images.ImageGenerationRequest(
+                prompt = prompt,
+                numberOfResults = 3,
+                size = OpenAI.Images.ImageSize.Small
+            )
+            
+            return! api.ImagesEndPoint.GenerateImageAsync(request)
+        }

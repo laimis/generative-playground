@@ -79,11 +79,35 @@ module Views =
                     ]
                 ]
             ]
+            
+        let imageForm = 
+            form [ 
+                _action "/image"
+                _method "POST"
+                ] [
+                div [] [
+                    div [_class "field"] [
+                        textarea [
+                            _id "prompt"
+                            _name "prompt"
+                            _class "textarea"
+                            ] [ rawText prompt ]
+                    ]
+                    div [_class "field"] [
+                        button [
+                            _class "button is-primary"
+                            _type "submit"
+                        ] [ encodedText "Generate" ]
+                    ]
+                ]
+            ]
         
         [
             div [_class "content"] [
                 h1 [] [ encodedText "Enter Prompt" ]
                 formElement
+                h1 [] [ encodedText "Image Prompt" ]
+                imageForm
             ]
             div [_class "content"] [
                 h3 [] [ encodedText "History" ]
@@ -236,11 +260,11 @@ module Views =
 
         let responseDivs =
             [
-            Some (bardSection)
+            Some bardSection
             (
                 match openAiResponse.Choices with
                 | null -> None
-                | _ -> Some (openAISection)
+                | _ -> Some openAISection
             )
             ]
             |> List.filter Option.isSome
@@ -258,6 +282,15 @@ module Views =
             h1 [] [ encodedText "Error" ]
             div [] [ encodedText message ]
         ]
+        [view] |> layout
+        
+    let renderImages prompt imageList =
+        
+        let view = div [ _class "content" ] [
+            h1 [] [ "Image results for " + prompt  |> str ]
+            div [] (imageList |> Seq.map (fun image -> img [ _src image ]) |> Seq.toList)
+        ]
+        
         [view] |> layout
 
     let renderHistoryEntry (entry:History.Entry) =
